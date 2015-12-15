@@ -4,10 +4,10 @@ This is my first original code. Since I have used some open source codes to deve
 This is an auto updater for general types of softwares.
 
 ## Requirements
-> .Net Framework 4.5 or higher
-> Windows Vista SP2 or higher
-> Network Connection
-> Web Server
+- .Net Framework 4.5 or higher
+- Windows Vista SP2 or higher
+- Network Connection
+- Web Server
 
 
 ## How to
