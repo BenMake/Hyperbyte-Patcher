@@ -1,6 +1,6 @@
 ## Hyperbyte   
 Welcome to the Hyperbyte Github Repository. <br/>
-Since I have used some open source codes to develop this project, I decided to make it open source too. <br/>
+Since I used some open source codes to develop this project, I decided to make it open source too. <br/>
 This is an auto updater for general types of softwares.
 
 ## Requirements
