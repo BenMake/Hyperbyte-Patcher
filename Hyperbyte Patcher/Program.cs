@@ -23,7 +23,8 @@ namespace Hyperbyte_Patcher
         {
             if (Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location)).Count() > 1)
             {
-                MessageBox.Show("Already Running"); return;
+                MessageBox.Show("Already Running"); 
+                return;
             }
 
             Application.EnableVisualStyles();
