@@ -17,6 +17,8 @@ This is an auto updater for general types of softwares.
 ## Screenshots
 <img src=""/>
 
+## Zip Library
+http://dotnetzip.herobo.com/DNZHelp/Index.html
 
 ## License
 Hyperbyte Patcher and Hyperbyte Selfupdater is released under the [MIT License](http://www.opensource.org/licenses/MIT).

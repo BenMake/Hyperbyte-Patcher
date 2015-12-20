@@ -1,11 +1,10 @@
 ﻿using Hyperbyte_Patcher;
+using Ionic.Zip;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Net;
 using System.Net.Cache;
 using System.Text;
@@ -23,10 +22,10 @@ namespace Hyperbyte_Selfupdater
         private KeyValueConfigurationCollection hyperSettings;
         private Configuration hyperConfigFile = ConfigurationManager.OpenExeConfiguration(Application.ExecutablePath);
         private uint hyperversion;
-        private Uri webpatch;
+        private Uri webpath;
         private WebClient webclient;
         private Package pkgDownloading;
-        private DirectoryInfo patchfolder;
+        private DirectoryInfo patcherfolder;
         private DirectoryInfo tempfolder;
         private DirectoryInfo path2extract;
 
@@ -39,12 +38,11 @@ namespace Hyperbyte_Selfupdater
             try
             {
                 hyperversion = Convert.ToUInt32(hyperSettings["hyperversion"].Value);
-                webpatch = new Uri(hyperSettings["webpatch"].Value);
+                webpath = new Uri(hyperSettings["webpath"].Value);
             }
             catch (Exception)
             {
                 hyperversion = 0;
-                webpatch = new Uri("");
             }
 
             InitUpdateProcess();
@@ -56,7 +54,7 @@ namespace Hyperbyte_Selfupdater
             string patchlist;
             try
             {
-                patchlist = web2string(webpatch.AbsoluteUri + "patchlist");
+                patchlist = web2string(webpath.AbsoluteUri + "patchlist");
             }
             catch (Exception e)
             {
@@ -112,7 +110,7 @@ namespace Hyperbyte_Selfupdater
                 labelStatus.Text = "Attempt to download files. Please wait.";
                 tempfolder = Directory.CreateDirectory("temp");
                 path2extract = Directory.CreateDirectory("tempext");
-                patchfolder = Directory.GetParent(tempfolder.Name);
+                patcherfolder = Directory.GetParent(tempfolder.Name);
                 CleanFiles(tempfolder);
                 CleanFiles(path2extract);
                 patcherDownloading = false;
@@ -136,7 +134,7 @@ namespace Hyperbyte_Selfupdater
                             labelStatus.Text = "Fetching " + package.Name;
                             try
                             {
-                                var fileaddress = new Uri(webpatch.AbsoluteUri + package.Name);
+                                var fileaddress = new Uri(webpath.AbsoluteUri + package.Name);
                                 webclient.DownloadFileAsync(fileaddress, package.Localization);
                                 pkgDownloading = package;
                                 patcherDownloading = true;
@@ -188,15 +186,15 @@ namespace Hyperbyte_Selfupdater
 
         private static string web2string(string url)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             byte[] buffer = new byte[8192];
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            HttpRequestCachePolicy noCachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
+            var request = (HttpWebRequest)WebRequest.Create(url);
+            var noCachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
             request.CachePolicy = noCachePolicy;
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-            Stream resStream = response.GetResponseStream();
-            string tempString = null;
-            int count = 0;
+            var response = (HttpWebResponse)request.GetResponse();
+            var resStream = response.GetResponseStream();
+            var tempString = string.Empty;
+            var count = 0;
             do
             {
                 count = resStream.Read(buffer, 0, buffer.Length);
@@ -215,9 +213,13 @@ namespace Hyperbyte_Selfupdater
             labelStatus.Text = "Extracting " + pkgDownloading.Name;
             try
             {
-                ZipFile.ExtractToDirectory(package.Localization, path2extract.Name);
+                var packagelocation = Path.Combine(tempfolder.FullName, package.Name);
+                using (ZipFile zip = ZipFile.Read(packagelocation))
+                {
+                    foreach (ZipEntry entry in zip)
+                        entry.Extract(patcherfolder.FullName, ExtractExistingFileAction.OverwriteSilently);
+                }
                 package.Extracted = true;
-                ReplaceFile(path2extract, patchfolder);
             }
             catch (Exception e)
             {
@@ -248,7 +250,7 @@ namespace Hyperbyte_Selfupdater
                 }
                 if (File.Exists(sourcefile.FullName))
                 {
-                    var file2move = Path.Combine(patchfolder.FullName, sourcefile.Name);
+                    var file2move = Path.Combine(patcherfolder.FullName, sourcefile.Name);
                     File.Move(sourcefile.FullName, file2move);
                 }
             }
@@ -266,38 +268,18 @@ namespace Hyperbyte_Selfupdater
             }
         }
 
-        private void CleanDirectory(string path)
-        {
-            labelStatus.Text = "Cleaning paths.";
-            try
-            {
-                foreach (string file in Directory.GetFiles(path))
-                {
-                    if (File.Exists(file))
-                        File.Delete(file);
-                }
-                if (Directory.Exists(path))
-                    Directory.Delete(path);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message + "\n\n" + e.StackTrace, "CleanFiles Error");
-                Environment.Exit(0);
-            }
-        }
-
         private void CleanDirectory(DirectoryInfo directory)
         {
             labelStatus.Text = "Cleaning stuff.";
             try
             {
                 foreach (FileInfo file in directory.GetFiles())
-                {
                     if (File.Exists(file.FullName))
                         file.Delete();
-                }
-                if (Directory.Exists(directory.FullName))
-                    Directory.Delete(directory.FullName);
+
+                foreach (DirectoryInfo dir in directory.GetDirectories())
+                    if (Directory.Exists(directory.FullName))
+                        dir.Delete(true);
             }
             catch (Exception e)
             {
