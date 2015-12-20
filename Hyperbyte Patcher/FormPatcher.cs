@@ -125,7 +125,7 @@ namespace Hyperbyte_Patcher
                         return null;
                     }
 
-                    if ((package.Name.Contains(".pkg")) && package.Version > patchversion) //autoupdate files
+                    if ((package.Name.Contains(".zip")) && package.Version > patchversion) //autoupdate files
                         filelist.Add(package);
 
                     else if (package.Name.Contains(".hyp") && package.Version > hyperversion) //autoupdate patcher
