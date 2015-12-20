@@ -29,7 +29,6 @@ namespace Hyperbyte_Patcher
         private Package pkgDownloading;
         private DirectoryInfo patcherfolder;
         private DirectoryInfo tempfolder;
-        private DirectoryInfo path2extract;
         private Stopwatch sw;
         private KeyValueConfigurationCollection hyperSettings;
         private Configuration hyperConfigFile = ConfigurationManager.OpenExeConfiguration(Application.ExecutablePath);
@@ -154,20 +153,17 @@ namespace Hyperbyte_Patcher
             {
                 labelStatus.Text = "Attempt to download files. Please wait.";
                 tempfolder = Directory.CreateDirectory("tmp");
-                path2extract = Directory.CreateDirectory("temp");
                 CleanFiles(tempfolder);
-                CleanFiles(path2extract);
                 patcherDownloading = false;
                 downloadCompleted = false;
                 var count = 0;
 
                 while (!downloadCompleted)
                 {
-
                     foreach (Package package in package2download)
                     {
                         count++;
-                        package.Localization = tempfolder.FullName + "\\" + package.Name;
+                        package.Localization = Path.Combine(tempfolder.FullName, package.Name);
 
                         while (patcherDownloading)
                             await Task.Delay(1000);
@@ -224,16 +220,13 @@ namespace Hyperbyte_Patcher
                 sw.Reset();
                 pkgDownloading.Downloaded = true;
                 ExtractPackage(pkgDownloading);
-                CleanDirectory(path2extract);
                 patchversion = pkgDownloading.Version;
                 WriteConfigFile("patchversion", patchversion.ToString());
                 labelStatus.Text = pkgDownloading.Name + " has been installed.";
                 patcherDownloading = false;
             }
             else
-            {
                 labelStatus.Text = string.Format("Failed to Get {0}\n{1}", pkgDownloading.Name, failure.Message);
-            }
         }
 
         private static string web2string(string url)
@@ -267,17 +260,14 @@ namespace Hyperbyte_Patcher
             {
                 var packagelocation = Path.Combine(tempfolder.FullName, package.Name);
                 using (ZipFile zip = ZipFile.Read(packagelocation))
-                {
                     foreach (ZipEntry entry in zip)
                         entry.Extract(patcherfolder.FullName, ExtractExistingFileAction.OverwriteSilently);
-                }
                 package.Extracted = true;
             }
             catch (Exception e)
             {
                 MessageBox.Show(string.Format("Failed to extract {0}\nError: {1}", package.Name, e.Message), "ExtractPackage");
                 CleanDirectory(tempfolder);
-                CleanDirectory(path2extract);
                 Environment.Exit(0);
             }
         }
@@ -295,16 +285,15 @@ namespace Hyperbyte_Patcher
 
         private void CleanDirectory(DirectoryInfo directory)
         {
-            labelStatus.Text = "Cleaning stuff.";
+            labelStatus.Text = "Cleaning directories.";
             try
             {
                 foreach (FileInfo file in directory.GetFiles())
-                    if (File.Exists(file.FullName))
-                        file.Delete();
-
+                    file.Delete();
                 foreach (DirectoryInfo dir in directory.GetDirectories())
-                    if (Directory.Exists(directory.FullName))
-                        dir.Delete(true);
+                    dir.Delete(true);
+
+                directory.Delete();
             }
             catch (Exception e)
             {
@@ -315,13 +304,11 @@ namespace Hyperbyte_Patcher
 
         private void CleanFiles(DirectoryInfo directory)
         {
-            labelStatus.Text = "Cleaning stuff.";
+            labelStatus.Text = "Cleaning files.";
             try
             {
-                if (Directory.Exists(directory.FullName))
-                    foreach (FileInfo file in directory.GetFiles())
-                        if (File.Exists(file.FullName))
-                            file.Delete();
+                foreach (FileInfo file in directory.GetFiles())
+                    file.Delete();
             }
             catch (Exception e)
             {
@@ -334,7 +321,7 @@ namespace Hyperbyte_Patcher
         {
             panelNotice.Hide();
             panelMain.Location = new System.Drawing.Point(13, 13);
-            Size = new System.Drawing.Size(500, 170);
+            this.Size = new System.Drawing.Size(500, 170);
         }
 
         private void buttonStartApp_Click(object sender, EventArgs e)
