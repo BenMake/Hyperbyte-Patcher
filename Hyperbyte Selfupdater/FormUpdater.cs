@@ -15,34 +15,35 @@ namespace Hyperbyte_Selfupdater
 {
     public partial class FormUpdater : Form
     {
-        private bool patcherDownloading;
-        private bool downloadCompleted;
-        private string patcherexecutable;
-        private string patcherarguments;
+        private bool patcherIsDownloading;
+        private bool updateCompleted;
+        private uint hyperVersion;
+        private string patcherExecutable;
+        private string patcherArguments;
+        private Uri patchesWebPath;
+        private WebClient webClient;
+        private Package packageOnDownloading;
+        private DirectoryInfo hyperFolder;
+        private DirectoryInfo tempFolder;
         private KeyValueConfigurationCollection hyperSettings;
-        private Configuration hyperConfigFile = ConfigurationManager.OpenExeConfiguration(Application.ExecutablePath);
-        private uint hyperversion;
-        private Uri webpath;
-        private WebClient webclient;
-        private Package pkgDownloading;
-        private DirectoryInfo patcherfolder;
-        private DirectoryInfo tempfolder;
-        private DirectoryInfo path2extract;
+        private Configuration hyperConfigFile;
 
-        public FormUpdater(string patcherexecutable, string patcherarguments)
+        public FormUpdater(string patcherExecutable, string patcherArguments)
         {
-            this.patcherexecutable = patcherexecutable;
-            this.patcherarguments = patcherarguments;
+            this.patcherExecutable = patcherExecutable;
+            this.patcherArguments = patcherArguments;
+            hyperConfigFile = ConfigurationManager.OpenExeConfiguration(patcherExecutable);
             hyperSettings = hyperConfigFile.AppSettings.Settings;
+            hyperFolder = new DirectoryInfo(Environment.CurrentDirectory);
             InitializeComponent();
             try
             {
-                hyperversion = Convert.ToUInt32(hyperSettings["hyperversion"].Value);
-                webpath = new Uri(hyperSettings["webpath"].Value);
+                hyperVersion = Convert.ToUInt32(hyperSettings["hyperVersion"].Value);
+                patchesWebPath = new Uri(hyperSettings["patchesWebPath"].Value);
             }
             catch (Exception)
             {
-                hyperversion = 0;
+                hyperVersion = 0;
             }
 
             InitUpdateProcess();
@@ -54,7 +55,7 @@ namespace Hyperbyte_Selfupdater
             string patchlist;
             try
             {
-                patchlist = web2string(webpath.AbsoluteUri + "patchlist");
+                patchlist = web2string(Path.Combine(patchesWebPath.AbsoluteUri, "patchlist"));
             }
             catch (Exception e)
             {
@@ -63,9 +64,9 @@ namespace Hyperbyte_Selfupdater
             }
 
             labelStatus.Text = "Building download list.";
-            var package2download = BuildDownloadList(patchlist);
+            var packagelist = BuildDownloadList(patchlist);
 
-            DownloadFiles(package2download);
+            DownloadFiles(packagelist);
         }
 
         private Package BuildDownloadList(string patchlist)
@@ -88,7 +89,7 @@ namespace Hyperbyte_Selfupdater
                         labelStatus.Text = "Patch list is in wrong format.\n" + e.Message;
                         return null;
                     }
-                    if (package.Name.Contains(".hyp") && package.Version > hyperversion) //select the last one (newer)
+                    if (package.Name.Contains(".hyp") && package.Version > hyperVersion) //select the last one (newer)
                         package2download = package;
                 }
             }
@@ -97,47 +98,44 @@ namespace Hyperbyte_Selfupdater
 
         private void FinishPatchProcess()
         {
-            CleanDirectory(tempfolder);
-            WriteConfigFile("hyperversion", hyperversion.ToString());
+            CleanDirectory(tempFolder);
+            WriteConfigFile("hyperVersion", hyperVersion.ToString());
             progressBar.Value = progressBar.Maximum;
             StartPatcher();
         }
 
-        private async void DownloadFiles(Package package2download)
+        private async void DownloadFiles(Package packagelist)
         {
-            if (package2download != null)
+            if (packagelist != null)
             {
                 labelStatus.Text = "Attempt to download files. Please wait.";
-                tempfolder = Directory.CreateDirectory("temp");
-                path2extract = Directory.CreateDirectory("tempext");
-                patcherfolder = Directory.GetParent(tempfolder.Name);
-                CleanFiles(tempfolder);
-                CleanFiles(path2extract);
-                patcherDownloading = false;
-                downloadCompleted = false;
+                tempFolder = Directory.CreateDirectory("temp");
+                CleanFiles(tempFolder);
+                patcherIsDownloading = false;
+                updateCompleted = false;
 
-                while (!downloadCompleted)
+                while (!updateCompleted)
                 {
-                    var package = package2download;
+                    var package = packagelist;
 
-                    package.Localization = tempfolder.FullName + "\\" + package.Name;
+                    package.Localization = Path.Combine(tempFolder.FullName, package.Name);
 
-                    while (patcherDownloading)
+                    while (patcherIsDownloading)
                         await Task.Delay(1000);
 
                     if (!package.Downloaded)
                     {
-                        using (webclient = new WebClient())
+                        using (webClient = new WebClient())
                         {
-                            webclient.DownloadFileCompleted += new AsyncCompletedEventHandler(Completed);
-                            webclient.DownloadProgressChanged += new DownloadProgressChangedEventHandler(ProgressChanged);
+                            webClient.DownloadFileCompleted += new AsyncCompletedEventHandler(Completed);
+                            webClient.DownloadProgressChanged += new DownloadProgressChangedEventHandler(ProgressChanged);
                             labelStatus.Text = "Fetching " + package.Name;
                             try
                             {
-                                var fileaddress = new Uri(webpath.AbsoluteUri + package.Name);
-                                webclient.DownloadFileAsync(fileaddress, package.Localization);
-                                pkgDownloading = package;
-                                patcherDownloading = true;
+                                var fileaddress = new Uri(patchesWebPath.AbsoluteUri + package.Name);
+                                webClient.DownloadFileAsync(fileaddress, package.Localization);
+                                packageOnDownloading = package;
+                                patcherIsDownloading = true;
                             }
                             catch (Exception e)
                             {
@@ -146,10 +144,10 @@ namespace Hyperbyte_Selfupdater
                             }
                         }
                     }
-                    while (patcherDownloading)
+                    while (patcherIsDownloading)
                         await Task.Delay(1000);
 
-                    downloadCompleted = true;
+                    updateCompleted = true;
                     RecheckPackages(package);
                 }
                 FinishPatchProcess();
@@ -161,7 +159,7 @@ namespace Hyperbyte_Selfupdater
         private void ProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             progressBar.Value = e.ProgressPercentage;
-            labelStatus.Text = string.Format("Downloading {0} [{1} MBs / {2} MBs ({3}%)]", pkgDownloading.Name, (e.BytesReceived / 1024d / 1024d).ToString("0.00"), (e.TotalBytesToReceive / 1024d / 1024d).ToString("0.00"), e.ProgressPercentage.ToString());
+            labelStatus.Text = string.Format("Downloading {0} [{1} MBs / {2} MBs ({3}%)]", packageOnDownloading.Name, (e.BytesReceived / 1024d / 1024d).ToString("0.00"), (e.TotalBytesToReceive / 1024d / 1024d).ToString("0.00"), e.ProgressPercentage.ToString());
         }
 
         private void Completed(object sender, AsyncCompletedEventArgs e)
@@ -170,17 +168,16 @@ namespace Hyperbyte_Selfupdater
 
             if (failure == null)
             {
-                pkgDownloading.Downloaded = true;
-                ExtractPackage(pkgDownloading);
-                CleanDirectory(path2extract);
-                hyperversion = pkgDownloading.Version;
-                WriteConfigFile("hyperversion", hyperversion.ToString());
-                labelStatus.Text = pkgDownloading.Name + " has been installed.";
-                patcherDownloading = false;
+                packageOnDownloading.Downloaded = true;
+                ExtractPackage(packageOnDownloading);
+                hyperVersion = packageOnDownloading.Version;
+                WriteConfigFile("hyperVersion", hyperVersion.ToString());
+                labelStatus.Text = packageOnDownloading.Name + " has been installed.";
+                patcherIsDownloading = false;
             }
             else
             {
-                labelStatus.Text = string.Format("Failed to Get {0}\n{1}", pkgDownloading.Name, failure.Message);
+                labelStatus.Text = string.Format("Failed to Get {0}\n{1}", packageOnDownloading.Name, failure.Message);
             }
         }
 
@@ -210,75 +207,45 @@ namespace Hyperbyte_Selfupdater
 
         private void ExtractPackage(Package package)
         {
-            labelStatus.Text = "Extracting " + pkgDownloading.Name;
+            labelStatus.Text = "Extracting " + packageOnDownloading.Name;
             try
             {
-                var packagelocation = Path.Combine(tempfolder.FullName, package.Name);
-                using (ZipFile zip = ZipFile.Read(packagelocation))
-                {
-                    foreach (ZipEntry entry in zip)
-                        entry.Extract(patcherfolder.FullName, ExtractExistingFileAction.OverwriteSilently);
-                }
+                var packagelocation = Path.Combine(tempFolder.FullName, package.Name);
+                using (var zippkg = ZipFile.Read(packagelocation))
+                    foreach (var entry in zippkg)
+                        entry.Extract(hyperFolder.FullName, ExtractExistingFileAction.OverwriteSilently);
                 package.Extracted = true;
             }
             catch (Exception e)
             {
                 MessageBox.Show(string.Format("Failed to extract {0}\nError: {1}", package.Name, e.Message), "ExtractPackage");
-                CleanDirectory(tempfolder);
-                CleanDirectory(path2extract);
+                CleanDirectory(tempFolder);
                 Environment.Exit(0);
             }
         }
 
-        private void ReplaceFile(DirectoryInfo source, DirectoryInfo destination)
-        {
-            labelStatus.Text = "Replacing files.";
-            var sourcefiles = source.GetFiles();
-            var destinationfiles = destination.GetFiles();
-
-            foreach (FileInfo sourcefile in sourcefiles)
-            {
-                foreach (FileInfo destinationfile in destinationfiles)
-                {
-                    if (sourcefile.Name.Equals(destinationfile.Name))
-                    {
-                        var sourcefilepath = sourcefile.FullName;
-                        var destinationfilepath = destinationfile.FullName;
-                        var backupfile = Path.Combine(tempfolder.FullName, source.Name + ".bkp");
-                        File.Replace(sourcefilepath, destinationfilepath, backupfile);
-                    }
-                }
-                if (File.Exists(sourcefile.FullName))
-                {
-                    var file2move = Path.Combine(patcherfolder.FullName, sourcefile.Name);
-                    File.Move(sourcefile.FullName, file2move);
-                }
-            }
-
-        }
-
-        private void RecheckPackages(Package package2download)
+        private void RecheckPackages(Package packagelist)
         {
             labelStatus.Text = "Rechecking Packages.";
-            var pkg = package2download;
+            var pkg = packagelist;
             if (pkg.Downloaded == false || pkg.Extracted == false)
             {
-                downloadCompleted = false;
+                updateCompleted = false;
                 return;
             }
         }
 
         private void CleanDirectory(DirectoryInfo directory)
         {
-            labelStatus.Text = "Cleaning stuff.";
+            labelStatus.Text = "Cleaning directories.";
             try
             {
-                foreach (FileInfo file in directory.GetFiles())
-                    if (File.Exists(file.FullName))
-                        file.Delete();
-                foreach (DirectoryInfo dir in directory.GetDirectories())
-                    if (Directory.Exists(directory.FullName))
-                        dir.Delete(true);
+                foreach (var file in directory.GetFiles())
+                    file.Delete();
+                foreach (var dir in directory.GetDirectories())
+                    dir.Delete(true);
+
+                directory.Delete();
             }
             catch (Exception e)
             {
@@ -289,13 +256,11 @@ namespace Hyperbyte_Selfupdater
 
         private void CleanFiles(DirectoryInfo directory)
         {
-            labelStatus.Text = "Cleaning stuff.";
+            labelStatus.Text = "Cleaning files.";
             try
             {
-                if (Directory.Exists(directory.FullName))
-                    foreach (FileInfo file in directory.GetFiles())
-                        if (File.Exists(file.FullName))
-                            file.Delete();
+                foreach (var file in directory.GetFiles())
+                    file.Delete();
             }
             catch (Exception e)
             {
@@ -309,14 +274,14 @@ namespace Hyperbyte_Selfupdater
             try
             {
                 Process application = new Process();
-                application.StartInfo.FileName = patcherexecutable;
-                application.StartInfo.Arguments = patcherarguments;
+                application.StartInfo.FileName = patcherExecutable;
+                application.StartInfo.Arguments = patcherArguments;
                 application.Start();
                 Environment.Exit(0);
             }
             catch (Exception e)
             {
-                MessageBox.Show("Failed to open " + patcherexecutable + "\nError: " + e.Message, "StartApplication Error");
+                MessageBox.Show("Failed to open " + patcherExecutable + "\nError: " + e.Message, "StartApplication Error");
                 Environment.Exit(0);
             }
         }
@@ -327,7 +292,5 @@ namespace Hyperbyte_Selfupdater
             hyperSettings.Add(key, value);
             hyperConfigFile.Save(ConfigurationSaveMode.Modified);
         }
-
-
     }
 }

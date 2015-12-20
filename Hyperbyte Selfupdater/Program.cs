@@ -9,8 +9,8 @@ namespace Hyperbyte_Selfupdater
 {
     static class Program
     {
-        private static string patcherexecutable = "";
-        private static string patcherarguments = "";
+        private static string patcherExecutable = "hyperbytepatcher.exe";
+        private static string patcherArguments = "";
 
         /// <summary>
         /// The main entry point for the application.
@@ -25,7 +25,7 @@ namespace Hyperbyte_Selfupdater
             }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new FormUpdater(patcherexecutable, patcherarguments));
+            Application.Run(new FormUpdater(patcherExecutable, patcherArguments));
         }
     }
 }
