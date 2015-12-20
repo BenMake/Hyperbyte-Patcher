@@ -319,13 +319,9 @@ namespace Hyperbyte_Patcher
             try
             {
                 if (Directory.Exists(directory.FullName))
-                {
                     foreach (FileInfo file in directory.GetFiles())
-                    {
                         if (File.Exists(file.FullName))
                             file.Delete();
-                    }
-                }
             }
             catch (Exception e)
             {
