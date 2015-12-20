@@ -354,9 +354,6 @@
   <data name="labelSpeed.Text" xml:space="preserve">
     <value>speed</value>
   </data>
-  <data name="labelSpeed.Visible" type="System.Boolean, mscorlib">
-    <value>False</value>
-  </data>
   <data name="&gt;&gt;labelSpeed.Name" xml:space="preserve">
     <value>labelSpeed</value>
   </data>

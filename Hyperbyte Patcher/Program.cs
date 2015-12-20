@@ -11,9 +11,9 @@ namespace Hyperbyte_Patcher
     {
 
         private static bool enableNotice = true;
-        private static string windowtitle = "Hyperbyte Patcher";
-        private static string appexecutable = "";
-        private static string apparguments = "";
+        private static string windowTitle = "Hyperbyte Patcher";
+        private static string appExecutable = "";
+        private static string appArguments = "";
 
         /// <summary>
         /// The main entry point for the application.
@@ -29,7 +29,7 @@ namespace Hyperbyte_Patcher
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(true);
-            Application.Run(new FormPatcher(enableNotice, windowtitle, appexecutable, apparguments));
+            Application.Run(new FormPatcher(enableNotice, windowTitle, appExecutable, appArguments));
         }
     }
 }
