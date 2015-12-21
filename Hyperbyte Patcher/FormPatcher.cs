@@ -372,9 +372,16 @@ namespace Hyperbyte_Patcher
 
         private void Write2ConfigFile(string key, string value)
         {
-            hyperSettings.Remove(key);
-            hyperSettings.Add(key, value);
-            hyperConfigFile.Save(ConfigurationSaveMode.Modified);
+            try
+            {
+                hyperSettings.Remove(key);
+                hyperSettings.Add(key, value);
+                hyperConfigFile.Save(ConfigurationSaveMode.Modified);
+            } catch (Exception e)
+            {
+                MessageBox.Show(e.Message + "\n\n" + e.StackTrace, "Write2ConfigFile Error");
+                Environment.Exit(0);
+            }
         }
     }
 }
