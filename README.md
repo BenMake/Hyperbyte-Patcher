@@ -23,7 +23,7 @@ This is an auto updater for general types of softwares.
         private static string appExecutable = "MyGame.exe";
         private static string appArguments = "-l 3";
         
-        > Here you MUST set the value of patcherExecutable variable to the assembly name (name of executable) of the patcher
+        > Here you MUST set the value of patcherExecutable variable to the name of executable of the patcher
         > It must be EXACTLY the same!
         private static string patcherExecutable = "hyperbytepatcher.exe";
         private static string patcherArguments = "";
