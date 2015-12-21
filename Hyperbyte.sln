@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 14 for Windows Desktop
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hyperbyte Patcher", "Hyperbyte Patcher\Hyperbyte Patcher.csproj", "{19E79CCA-C6E5-4FF5-B9A4-C83E87A3A1E6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hyperbyte Patcher", "Patcher\Hyperbyte Patcher.csproj", "{19E79CCA-C6E5-4FF5-B9A4-C83E87A3A1E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hyperbyte Selfupdater", "Hyperbyte Selfupdater\Hyperbyte Selfupdater.csproj", "{13F8D629-5579-4252-8297-23EB9BF8C776}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hyperbyte Selfupdater", "Selfupdater\Hyperbyte Selfupdater.csproj", "{13F8D629-5579-4252-8297-23EB9BF8C776}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
