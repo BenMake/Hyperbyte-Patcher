@@ -50,7 +50,8 @@ This is an auto updater for general types of softwares.
 - .hyp files will be loaded by the selfupdater programm to update the patcher
 - To make a .hyp file, just compress the new patcher executable with zip and rename the format to .hyp
 - Once updated, the selfupdater will restart the patcher where it stopped.
-
+- All files downloaded by the patcher will be extracted to the same folder where it is running
+- All files extracted will rewrite duplicate files
 - There are some examples in www folder of this repository
 
 ## Screenshots
