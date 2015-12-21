@@ -32,7 +32,15 @@ namespace Hyperbyte_Selfupdater
         {
             this.patcherExecutable = patcherExecutable;
             this.patcherArguments = patcherArguments;
-            hyperConfigFile = ConfigurationManager.OpenExeConfiguration(patcherExecutable);
+            try
+            {
+                hyperConfigFile = ConfigurationManager.OpenExeConfiguration(patcherExecutable);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to load " + patcherExecutable + ".config file", "Selfupdater");
+                Environment.Exit(0);
+            }
             hyperSettings = hyperConfigFile.AppSettings.Settings;
             hyperFolder = new DirectoryInfo(Environment.CurrentDirectory);
             InitializeComponent();
