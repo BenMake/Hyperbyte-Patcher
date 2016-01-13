@@ -54,12 +54,14 @@ namespace Hyperbyte_Selfupdater
                 hyperVersion = 0;
             }
 
+            MessageBox.Show("Updates are going to be installed now.", "Selfupdater");
             InitUpdateProcess();
         }
 
         private void InitUpdateProcess()
         {
-            labelStatus.Text = "Downloading patch list.";
+            labelStatus.Text = "Downloading update";
+            Refresh();
             string patchlist;
             try
             {
@@ -67,19 +69,22 @@ namespace Hyperbyte_Selfupdater
             }
             catch (Exception e)
             {
-                labelStatus.Text = "Failed to Get the patch list.\n" + e.Message;
+                labelStatus.Text = "Failed to get update.\n" + e.Message;
+                Refresh();
                 return;
             }
 
-            labelStatus.Text = "Building download list.";
-            var packagelist = BuildDownloadList(patchlist);
+            var package = BuildDownloadList(patchlist);
 
-            DownloadFiles(packagelist);
+            DownloadFiles(package);
         }
 
         private Package BuildDownloadList(string patchlist)
         {
+            labelStatus.Text = "Fetching update.";
+            Refresh();
             Package package2download = null;
+            patchlist.Replace("\r", "");
             using (var reader = new StringReader(patchlist))
             {
                 var line = string.Empty;
@@ -94,7 +99,8 @@ namespace Hyperbyte_Selfupdater
                     }
                     catch (Exception e)
                     {
-                        labelStatus.Text = "Patch list is in wrong format.\n" + e.Message;
+                        labelStatus.Text = "Patch list is incorret. - Line: " + line + "\nError: " + e.Message;
+                        Refresh();
                         return null;
                     }
                     if (package.Name.Contains(".hyp") && package.Version > hyperVersion) //select the last one (newer)
@@ -104,28 +110,19 @@ namespace Hyperbyte_Selfupdater
             return package2download;
         }
 
-        private void FinishPatchProcess()
+        private async void DownloadFiles(Package package)
         {
-            CleanDirectory(tempFolder);
-            WriteConfigFile("hyperVersion", hyperVersion.ToString());
-            progressBar.Value = progressBar.Maximum;
-            StartPatcher();
-        }
-
-        private async void DownloadFiles(Package packagelist)
-        {
-            if (packagelist != null)
+            if (package != null)
             {
-                labelStatus.Text = "Attempt to download files. Please wait.";
-                tempFolder = Directory.CreateDirectory("temp");
+                labelStatus.Text = "Attempt to download. Please wait.";
+                Refresh();
+                tempFolder = Directory.CreateDirectory("tmp");
                 CleanFiles(tempFolder);
                 patcherIsDownloading = false;
                 updateCompleted = false;
 
                 while (!updateCompleted)
                 {
-                    var package = packagelist;
-
                     package.Localization = Path.Combine(tempFolder.FullName, package.Name);
 
                     while (patcherIsDownloading)
@@ -158,11 +155,21 @@ namespace Hyperbyte_Selfupdater
                     updateCompleted = true;
                     RecheckPackages(package);
                 }
-                FinishPatchProcess();
+                FinishUpdateProcess();
             }
             else
                 StartPatcher();
         }
+
+        private void FinishUpdateProcess()
+        {
+            CleanDirectory(tempFolder);
+            WriteConfigFile("hyperVersion", hyperVersion.ToString());
+            WriteConfigFile("autostart", "False");
+            progressBar.Value = progressBar.Maximum;
+            StartPatcher();
+        }
+
 
         private void ProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
@@ -301,7 +308,8 @@ namespace Hyperbyte_Selfupdater
                 hyperSettings.Remove(key);
                 hyperSettings.Add(key, value);
                 hyperConfigFile.Save(ConfigurationSaveMode.Modified);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 MessageBox.Show(e.Message + "\n\n" + e.StackTrace, "Write2ConfigFile Error");
                 Environment.Exit(0);

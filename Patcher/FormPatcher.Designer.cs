@@ -118,6 +118,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "FormPatcher";
+            this.Shown += new System.EventHandler(this.FormPatcher_Shown);
             this.panelMain.ResumeLayout(false);
             this.panelNotice.ResumeLayout(false);
             this.panelNotice.PerformLayout();

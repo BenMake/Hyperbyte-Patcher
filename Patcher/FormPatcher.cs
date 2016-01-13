@@ -18,6 +18,7 @@ namespace Hyperbyte_Patcher
         private bool enableNotice;
         private bool patcherIsDownloading;
         private bool updateCompleted;
+        private bool hasUpdates;
         private uint patchVersion;
         private uint hyperVersion;
         private string appFileName;
@@ -35,6 +36,9 @@ namespace Hyperbyte_Patcher
 
         public FormPatcher(bool enableNotice, string windowTitle, string appFileName, string appArguments)
         {
+            InitializeComponent();
+            labelStatus.Text = "Initializing...";
+            Refresh();
             this.enableNotice = enableNotice;
             this.appFileName = appFileName;
             this.appArguments = appArguments;
@@ -43,10 +47,9 @@ namespace Hyperbyte_Patcher
             hyperSettings = hyperConfigFile.AppSettings.Settings;
             hyperFolder = new DirectoryInfo(Environment.CurrentDirectory);
             stopwatch = new Stopwatch();
-            InitializeComponent();
             buttonStartApp.Enabled = false;
-            labelSpeed.Hide();
-            this.Text = windowTitle;
+            hasUpdates = false;
+            Text = windowTitle;
             labelSpeed.Text = string.Empty;
             bool checkboxStatus;
             try
@@ -58,57 +61,73 @@ namespace Hyperbyte_Patcher
             }
             catch (Exception)
             {
-                checkboxStatus = true;
+                checkboxStatus = false;
                 patchVersion = 0;
                 hyperVersion = 0;
             }
             checkBoxAutoStart.Checked = checkboxStatus;
 
-            if (enableNotice == true)
-                DownloadNoticeTexts();
-            else
+            if (!enableNotice)
                 TransformMini();
+        }
 
-            InitPatchProcess();
+        private void InitPatchProcess()
+        {
+            if (enableNotice)
+                DownloadNoticeTexts();
+            var patchlist = GetPatchList();
+            if (patchlist != null)
+            {
+                var filelist = BuildDownloadList(patchlist);
+                DownloadFiles(filelist);
+                Refresh();
+            }
+            return;
         }
 
         private void DownloadNoticeTexts()
         {
             labelStatus.Text = "Downloading Notices.";
+            Refresh();
             try
             {
                 noticeText = web2string(Path.Combine(patchesWebPath.AbsoluteUri, "notice"));
+                noticeText = noticeText.Replace("\r", "");
+                noticeText = noticeText.Replace("\n", Environment.NewLine);
                 textBoxNotice.Text = noticeText;
             }
             catch (Exception e)
             {
                 textBoxNotice.Text = e.Message;
+                Refresh();
             }
         }
 
-        private void InitPatchProcess()
+        private string GetPatchList()
         {
             labelStatus.Text = "Downloading patch list.";
-            string patchlist;
+            Refresh();
+            var patchlist = string.Empty;
             try
             {
                 patchlist = web2string(Path.Combine(patchesWebPath.AbsoluteUri, "patchlist"));
+                return patchlist;
             }
             catch (Exception e)
             {
                 labelStatus.Text = "Failed to Get the patch list.\n" + e.Message;
-                return;
+                Refresh();
+                return null;
             }
-
-            labelStatus.Text = "Building download list.";
-            var packagelist = BuildDownloadList(patchlist);
-
-            DownloadFiles(packagelist);
         }
 
         private List<Package> BuildDownloadList(string patchlist)
         {
+            labelStatus.Text = "Building download list.";
+            Refresh();
             var filelist = new List<Package>();
+            patchlist = patchlist.Replace("\r", "");
+            patchlist = patchlist.Replace("\n", Environment.NewLine);
             using (var reader = new StringReader(patchlist))
             {
                 var line = string.Empty;
@@ -123,7 +142,8 @@ namespace Hyperbyte_Patcher
                     }
                     catch (Exception e)
                     {
-                        labelStatus.Text = "Patch list is in wrong format.\n" + e.Message;
+                        labelStatus.Text = "Patch list is not correct. - Line: " + line + "\nError: " + e.Message;
+                        Refresh();
                         return null;
                     }
 
@@ -139,13 +159,15 @@ namespace Hyperbyte_Patcher
 
         private async void DownloadFiles(List<Package> packagelist)
         {
-            if (packagelist != null)
+            if (packagelist != null && packagelist.Count > 0)
             {
                 labelStatus.Text = "Attempt to download files. Please wait.";
-                tempFolder = Directory.CreateDirectory("temp");
+                Refresh();
+                tempFolder = Directory.CreateDirectory("tmp");
                 CleanFiles(tempFolder);
                 patcherIsDownloading = false;
                 updateCompleted = false;
+                hasUpdates = true;
                 var count = 0;
 
                 while (!updateCompleted)
@@ -182,16 +204,27 @@ namespace Hyperbyte_Patcher
                             }
                         }
                     }
-
                     while (patcherIsDownloading)
                         await Task.Delay(1000);
-
                     updateCompleted = true;
                     RecheckPackages(packagelist);
                 }
-                FinishPatchProcess();
             }
+            FinishPatchProcess();
             return;
+        }
+
+        private void FinishPatchProcess()
+        {
+            if (hasUpdates) CleanDirectory(tempFolder);
+            Write2ConfigFile("patchVersion", patchVersion.ToString());
+            Text = string.Format("[Completed] {0}", windowTitle);
+            progressBar.Value = progressBar.Maximum;
+            labelStatus.Text = "Patch Process Completed.";
+            labelSpeed.Text = string.Empty;
+            buttonStartApp.Enabled = true;
+            if (checkBoxAutoStart.Checked)
+                StartApplication();
         }
 
         private void ProgressChanged(object sender, DownloadProgressChangedEventArgs e)
@@ -219,17 +252,7 @@ namespace Hyperbyte_Patcher
                 labelStatus.Text = string.Format("Failed to Get {0}\n{1}", packageOnDownloading.Name, failure.Message);
         }
 
-        private void FinishPatchProcess()
-        {
-            CleanDirectory(tempFolder);
-            Write2ConfigFile("patchVersion", patchVersion.ToString());
-            this.Text = string.Format("[Completed] {0}", windowTitle);
-            progressBar.Value = progressBar.Maximum;
-            labelStatus.Text = "Patch Process Completed.";
-            buttonStartApp.Enabled = true;
-            if (checkBoxAutoStart.Checked)
-                StartApplication();
-        }
+
 
         private static string web2string(string url)
         {
@@ -326,18 +349,6 @@ namespace Hyperbyte_Patcher
             Size = new System.Drawing.Size(500, 170);
         }
 
-        private void buttonStartApp_Click(object sender, EventArgs e)
-        {
-            Write2ConfigFile("autostart", checkBoxAutoStart.Checked.ToString());
-            StartApplication();
-        }
-
-        private void buttonClosePatcher_Click(object sender, EventArgs e)
-        {
-            Write2ConfigFile("autostart", checkBoxAutoStart.Checked.ToString());
-            Environment.Exit(0);
-        }
-
         private void HyperbyteUpdate()
         {
             try
@@ -356,17 +367,20 @@ namespace Hyperbyte_Patcher
 
         private void StartApplication()
         {
-            try
+            if (!hasUpdates)
             {
-                Process application = new Process();
-                application.StartInfo.FileName = appFileName;
-                application.StartInfo.Arguments = appArguments;
-                application.Start();
-                Environment.Exit(0);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show("Failed to open " + appFileName + "\nError: " + e.Message, "StartApplication Error");
+                try
+                {
+                    Process application = new Process();
+                    application.StartInfo.FileName = appFileName;
+                    application.StartInfo.Arguments = appArguments;
+                    application.Start();
+                    Environment.Exit(0);
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show("Failed to open " + appFileName + "\nError: " + e.Message, "StartApplication Error");
+                }
             }
         }
 
@@ -383,5 +397,24 @@ namespace Hyperbyte_Patcher
                 Environment.Exit(0);
             }
         }
+
+        private void FormPatcher_Shown(object sender, EventArgs e)
+        {
+            Refresh();
+            InitPatchProcess();
+        }
+
+        private void buttonStartApp_Click(object sender, EventArgs e)
+        {
+            Write2ConfigFile("autostart", checkBoxAutoStart.Checked.ToString());
+            StartApplication();
+        }
+
+        private void buttonClosePatcher_Click(object sender, EventArgs e)
+        {
+            Write2ConfigFile("autostart", checkBoxAutoStart.Checked.ToString());
+            Environment.Exit(0);
+        }
+
     }
 }

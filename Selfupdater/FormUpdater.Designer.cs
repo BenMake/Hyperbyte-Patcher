@@ -40,15 +40,15 @@
             this.panelMain.Controls.Add(this.progressBar);
             this.panelMain.Location = new System.Drawing.Point(12, 12);
             this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(343, 109);
+            this.panelMain.Size = new System.Drawing.Size(375, 72);
             this.panelMain.TabIndex = 2;
             // 
             // labelStatus
             // 
             this.labelStatus.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.labelStatus.Location = new System.Drawing.Point(3, 39);
+            this.labelStatus.Location = new System.Drawing.Point(3, 28);
             this.labelStatus.Name = "labelStatus";
-            this.labelStatus.Size = new System.Drawing.Size(337, 59);
+            this.labelStatus.Size = new System.Drawing.Size(369, 34);
             this.labelStatus.TabIndex = 1;
             this.labelStatus.Text = "statusLabel";
             this.labelStatus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -58,7 +58,7 @@
             this.progressBar.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.progressBar.Location = new System.Drawing.Point(3, 3);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(337, 33);
+            this.progressBar.Size = new System.Drawing.Size(369, 22);
             this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.progressBar.TabIndex = 0;
             // 
@@ -66,12 +66,12 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(367, 131);
+            this.ClientSize = new System.Drawing.Size(399, 96);
             this.Controls.Add(this.panelMain);
             this.MaximizeBox = false;
             this.Name = "FormUpdater";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Self Updater";
+            this.Text = "selfupdater";
             this.panelMain.ResumeLayout(false);
             this.ResumeLayout(false);
 
