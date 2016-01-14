@@ -223,7 +223,7 @@ namespace Hyperbyte_Patcher
             labelStatus.Text = "Patch Process Completed.";
             labelSpeed.Text = string.Empty;
             buttonStartApp.Enabled = true;
-            if (checkBoxAutoStart.Checked)
+            if (checkBoxAutoStart.Checked && !hasUpdates)
                 StartApplication();
         }
 
@@ -367,21 +367,18 @@ namespace Hyperbyte_Patcher
 
         private void StartApplication()
         {
-            if (!hasUpdates)
+			try
             {
-                try
-                {
-                    Process application = new Process();
-                    application.StartInfo.FileName = appFileName;
-                    application.StartInfo.Arguments = appArguments;
-                    application.Start();
-                    Environment.Exit(0);
-                }
-                catch (Exception e)
-                {
-                    MessageBox.Show("Failed to open " + appFileName + "\nError: " + e.Message, "StartApplication Error");
-                }
+                Process application = new Process();
+                application.StartInfo.FileName = appFileName;
+                application.StartInfo.Arguments = appArguments;
+                application.Start();
+                Environment.Exit(0);
             }
+            catch (Exception e)
+            {
+                MessageBox.Show("Failed to open " + appFileName + "\nError: " + e.Message, "StartApplication Error");
+			}
         }
 
         private void Write2ConfigFile(string key, string value)
