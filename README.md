@@ -69,3 +69,6 @@ Enabled Notices
 Disabled Notices
 
 <img src="http://i.imgur.com/MIHh6l9.png"/>
+
+-## License
+ -Hyperbyte Patcher Project is released under the [GNU GPL-3.0 License](http://opensource.org/licenses/GPL-3.0).
